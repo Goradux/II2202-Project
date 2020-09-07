@@ -1,5 +1,8 @@
 import cryptography
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
 import time
 from sys import getsizeof
 import random
@@ -8,7 +11,7 @@ import string
 
 
 ##
-# AES example
+# AES example  MINIMIZE THIS
 def aes_example(string):
 
     start = time.time()
@@ -30,9 +33,42 @@ def aes_example(string):
     print(round(end - start, 5))
 ##
 
+##
+# RSA example  MINIMIZE THIS
+def rsa_example():
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    public_key = private_key.public_key()
+    message = b"encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted data encrypted " # for some reason 207 is the limit that the current key_size will allow
+    ciphertext = public_key.encrypt(
+        message,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    plaintext = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    if plaintext == message:
+        print(True)
+    print(ciphertext)
+    print(getsizeof(ciphertext))
+    print(plaintext, message)
+    print(getsizeof(message))
+
+##
+
 
 def test_aes(msg: str) -> int:
-    # implement the algorithm here
     key = os.urandom(16)
     iv = os.urandom(16)
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -42,7 +78,6 @@ def test_aes(msg: str) -> int:
     decrypted_message = decryptor.update(ct) + decryptor.finalize()
     return getsizeof(ct)
 def test_blowfish(msg: str) -> int:
-    # implement the algorithm here
     key = os.urandom(16)
     iv = os.urandom(8)
     cipher = Cipher(algorithms.Blowfish(key), modes.CBC(iv))
@@ -51,15 +86,70 @@ def test_blowfish(msg: str) -> int:
     decryptor = cipher.decryptor()
     decrypted_message = decryptor.update(ct) + decryptor.finalize()
     return getsizeof(ct)
-    # return getsizeof(msg)
 def test_rsa(msg: str) -> int:
+    # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
+    new_msgs = []
+    # partition the msg if it is too long for the key_size
+    if len(msg) > 128:
+        for i in range(round(len(msg)/128)):
+            new_msgs.append(msg[(128*i):(128*i+128)])
+
+    if new_msgs == []:
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,  # according to this: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.icha700/keysizec.htm
+                            # 512 - low sec, 1024 - medium sec, 2048 - high sec, 4096 - very high sec
+        )
+        public_key = private_key.public_key()
+        message = bytes(msg, 'utf-8')
+        ciphertext = public_key.encrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        plaintext = private_key.decrypt(
+            ciphertext,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return getsizeof(ciphertext)
+    else:
+        total_size = 0
+        for part in new_msgs:
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+            )
+            public_key = private_key.public_key()
+            message = bytes(part, 'utf-8')
+            ciphertext = public_key.encrypt(
+                message,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            plaintext = private_key.decrypt(
+                ciphertext,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            total_size += getsizeof(ciphertext)
+        return total_size
+# def test_elliptic(msg: str) -> int:
     # implement the algorithm here
-    return getsizeof(msg)
-def test_elliptic(msg: str) -> int:
-    # implement the algorithm here
-    return getsizeof(msg)
+    # return getsizeof(msg)
 def test_idea(msg: str) -> int:
-    # implement the algorithm here
     key = os.urandom(16)
     iv = os.urandom(8)
     cipher = Cipher(algorithms.IDEA(key), modes.CBC(iv))
@@ -68,9 +158,7 @@ def test_idea(msg: str) -> int:
     decryptor = cipher.decryptor()
     decrypted_message = decryptor.update(ct) + decryptor.finalize()
     return getsizeof(ct)
-    # return getsizeof(msg)
 def test_tripledes(msg: str) -> int:
-    # implement the algorithm here
     key = os.urandom(16)
     iv = os.urandom(8)
     cipher = Cipher(algorithms.TripleDES(key), modes.CBC(iv))
@@ -79,14 +167,13 @@ def test_tripledes(msg: str) -> int:
     decryptor = cipher.decryptor()
     decrypted_message = decryptor.update(ct) + decryptor.finalize()
     return getsizeof(ct)
-    # return getsizeof(msg)
 
 
 algos = [
     ['AES', test_aes],
     ['Blowfish', test_blowfish],
     ['RSA', test_rsa],
-    ['elliptic curve', test_elliptic],
+    # ['elliptic curve', test_elliptic],
     ['IDEA', test_idea],
     ['tripleDES', test_tripledes],
 ]
@@ -111,7 +198,7 @@ def main():
             start = time.time()
             
             # this is where we are calling the encryption algorithm
-            for _ in range(1000):
+            for _ in range(1):
             #     when run 1000 times on my PC takes around 8 ms for AES
                 payload = algo[1](msg[1])
             # mb needs to be run multiple times if a single one is too fast. Like 100 times?
@@ -123,7 +210,9 @@ def main():
         print('--------------------------')
 
 if __name__ == "__main__":
-    main()
+    # main()
+    elliptic_curve_example()
+    # rsa_example()
     # for _ in range(10):
     #     aes_example()
     # print(messages)
