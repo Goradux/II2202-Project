@@ -172,10 +172,10 @@ def test_tripledes(msg: str) -> int:
 algos = [
     ['AES', test_aes],
     ['Blowfish', test_blowfish],
-    ['RSA', test_rsa],
     # ['elliptic curve', test_elliptic],
     ['IDEA', test_idea],
     ['tripleDES', test_tripledes],
+    ['RSA', test_rsa],
 ]
 
 
@@ -197,21 +197,27 @@ def main():
 
             start = time.time()
             
+            repeats = 0
+            # RSA takes a lot longer to test, so run only 5 instances
+            if algo[0] == 'RSA':
+                repeats = 5
+            else:
+                repeats = 1000    
+                
             # this is where we are calling the encryption algorithm
-            for _ in range(1):
-            #     when run 1000 times on my PC takes around 8 ms for AES
+            for _ in range(repeats):
                 payload = algo[1](msg[1])
             # mb needs to be run multiple times if a single one is too fast. Like 100 times?
 
             end = time.time()
-            print('Total execution time:', round(end - start, 6), 'seconds')
+            print('Total execution time (per 1 instance):', round((end - start)/repeats*1000, 3), 'ms')
             print('Total payload size:', payload, 'bytes')
             print()
         print('--------------------------')
 
 if __name__ == "__main__":
-    # main()
-    elliptic_curve_example()
+    main()
+    # elliptic_curve_example()
     # rsa_example()
     # for _ in range(10):
     #     aes_example()
