@@ -8,6 +8,8 @@ from sys import getsizeof
 import random
 import os
 import string
+from datetime import datetime
+from glob import glob
 
 
 ##
@@ -173,18 +175,18 @@ algos = [
     ['AES', test_aes],
     ['Blowfish', test_blowfish],
     # ['elliptic curve', test_elliptic],
-    ['IDEA', test_idea],
+    # ['IDEA', test_idea],
     ['tripleDES', test_tripledes],
     ['RSA', test_rsa],
 ]
 
 
 messages = [
-    ['very short', ''.join(random.choice(string.ascii_letters) for i in range(16))],    
+    ['very-short', ''.join(random.choice(string.ascii_letters) for i in range(16))],    
     ['short', ''.join(random.choice(string.ascii_letters) for i in range(64))],    
     ['medium', ''.join(random.choice(string.ascii_letters) for i in range(256))],    
     ['long', ''.join(random.choice(string.ascii_letters) for i in range(1024))],
-    ['very long', ''.join(random.choice(string.ascii_letters) for i in range(4096))],
+    ['very-long', ''.join(random.choice(string.ascii_letters) for i in range(4096))],
 ]
 
 
@@ -195,7 +197,10 @@ def main():
             # run it once, so no time overhead for initilization
             algo[1](msg[1])
 
-            start = time.time()
+            log_name = datetime.now().strftime('%Y-%m-%d_%H-%M.txt')
+            with open('./data/{}_{}_{}'.format(algo[0], msg[0], log_name), 'a') as log:
+                pass
+
             
             repeats = 0
             # RSA takes a lot longer to test, so run only 5 instances
@@ -204,21 +209,31 @@ def main():
             else:
                 repeats = 1000    
                 
+            first_start = time.time()
+
             # this is where we are calling the encryption algorithm
             for _ in range(repeats):
+                start = time.time()
                 payload = algo[1](msg[1])
+                end = time.time()
+                with open('./data/{}_{}_{}'.format(algo[0], msg[0], log_name), 'a') as log:
+                    log.write(str((end - start)*1000) + '\n')
             # mb needs to be run multiple times if a single one is too fast. Like 100 times?
 
             end = time.time()
-            print('Total execution time (per 1 instance):', round((end - start)/repeats*1000, 3), 'ms')
+
+            
+
+            print('Total execution time (per 1 instance):', round((end - first_start)/repeats*1000, 3), 'ms')
             print('Total payload size:', payload, 'bytes')
             print()
         print('--------------------------')
 
 if __name__ == "__main__":
+    files = glob('./data/*')
+    for f in files:
+        os.remove(f)
     main()
-    # elliptic_curve_example()
-    # rsa_example()
-    # for _ in range(10):
-    #     aes_example()
-    # print(messages)
+    # start = time.time()
+    # time.sleep(1)
+    # print(time.time() - start)
